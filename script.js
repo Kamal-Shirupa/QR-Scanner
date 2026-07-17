@@ -3,7 +3,7 @@
 // ===========================
 
 const WEB_APP_URL =
-"https://script.google.com/macros/s/AKfycbwpOyBOzK_x_6cIZd8IfbLHaQlRnonuljjHU9RJ1WGbwmDwPqTMNKLj1ystwS795gxjxg/exec";
+"https://script.google.com/macros/s/AKfycbxyoY-_5Fk2M-fTWYigypu80E7x5pdN1RpqrctNH1hzl7bTMXTVc9C-KGEx_SM7Carjrw/exec";
 
 let scanner;
 let processing = false;
