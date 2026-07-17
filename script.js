@@ -5,7 +5,7 @@
 const WEB_APP_URL =
 "https://script.google.com/macros/s/AKfycbwpOyBOzK_x_6cIZd8IfbLHaQlRnonuljjHU9RJ1WGbwmDwPqTMNKLj1ystwS795gxjxg/exec";
 
-let html5QrCode;
+let scanner;
 let processing = false;
 
 // ===========================
@@ -21,106 +21,88 @@ const restartBtn = document.getElementById("restartBtn");
 // STATUS
 // ===========================
 
-function setStatus(message, css){
+function setStatus(message, css = "") {
 
     statusDiv.innerHTML = message;
-
     statusDiv.className = "status";
 
-    if(css)
+    if (css) {
         statusDiv.classList.add(css);
+    }
 
 }
 
 // ===========================
-// SEND TO APPS SCRIPT
+// MARK ATTENDANCE
 // ===========================
 
-async function markAttendance(id){
+async function markAttendance(id) {
 
-    try{
+    try {
 
-        setStatus("Checking Attendance...", "");
+        setStatus("Checking Attendance...");
 
         studentId.innerHTML = id;
 
-        const url =
-        WEB_APP_URL +
-        "?id=" +
-        encodeURIComponent(id) +
-        "&t=" +
-        new Date().getTime();
+        const response = await fetch(
+            `${WEB_APP_URL}?id=${encodeURIComponent(id)}&t=${Date.now()}`
+        );
 
-        const response = await fetch(url,{
-            method:"GET",
-            cache:"no-store"
-        });
-
-        const text = await response.text();
+        const text = (await response.text()).trim();
 
         result.innerHTML = text;
 
-        if(text==="Attendance Marked"){
+        if (text === "Attendance Marked") {
 
-            setStatus("✅ Attendance Marked","success");
+            setStatus("✅ Attendance Marked", "success");
 
-        }
-        else if(text==="Already Attended"){
+        } else if (text === "Already Attended") {
 
-            setStatus("⚠ Already Attended","warning");
+            setStatus("⚠ Already Attended", "warning");
 
-        }
-        else if(text==="Invalid QR"){
+        } else {
 
-            setStatus("❌ Invalid QR","error");
-
-        }
-        else{
-
-            setStatus(text,"error");
+            setStatus("❌ Invalid QR", "error");
 
         }
 
     }
-    catch(error){
+    catch (err) {
 
-        console.error(error);
+        console.error(err);
 
-        setStatus("Network Error","error");
+        setStatus("❌ Network Error", "error");
 
-        result.innerHTML="Failed";
+        result.innerHTML = "Failed";
 
     }
 
-    setTimeout(function(){
+    setTimeout(() => {
 
-        processing=false;
+        processing = false;
 
-        result.innerHTML="-";
+        studentId.innerHTML = "-";
 
-        studentId.innerHTML="-";
+        result.innerHTML = "-";
 
-        setStatus("Waiting for QR...","");
+        setStatus("Waiting for QR...");
 
-    },2500);
+    }, 2500);
 
 }
 
 // ===========================
-// SUCCESS
+// QR SUCCESS
 // ===========================
 
-function onScanSuccess(decodedText){
+function onScanSuccess(decodedText) {
 
-    if(processing)
-        return;
+    if (processing) return;
 
-    processing=true;
+    processing = true;
 
-    if(navigator.vibrate){
-
+    if (navigator.vibrate) {
         navigator.vibrate(150);
-
     }
 
     markAttendance(decodedText);
@@ -128,71 +110,51 @@ function onScanSuccess(decodedText){
 }
 
 // ===========================
-// FAILURE
+// START SCANNER
 // ===========================
 
-function onScanFailure(error){
+function startScanner() {
 
-}
+    scanner = new Html5QrcodeScanner(
+        "reader",
+        {
+            fps: 10,
 
-// ===========================
-// START CAMERA
-// ===========================
-
-function startScanner(){
-
-    html5QrCode = new Html5Qrcode("reader");
-
-    Html5Qrcode.getCameras()
-    .then(function(devices){
-
-        if(devices.length===0){
-
-            setStatus("Camera Not Found","error");
-
-            return;
-
-        }
-
-        html5QrCode.start(
-
-            devices[0].id,
-
-            {
-                fps:10,
-                qrbox:250
+            qrbox: {
+                width: 250,
+                height: 250
             },
 
-            onScanSuccess,
-            onScanFailure
+            rememberLastUsedCamera: true,
 
-        );
+            supportedScanTypes: [
+                Html5QrcodeScanType.SCAN_TYPE_CAMERA
+            ]
+        },
+        false
+    );
 
-    })
-    .catch(function(err){
-
-        console.log(err);
-
-        setStatus("Camera Permission Denied","error");
-
-    });
+    scanner.render(
+        onScanSuccess,
+        function () {}
+    );
 
 }
 
 startScanner();
 
 // ===========================
-// RESTART BUTTON
+// RESTART
 // ===========================
 
-restartBtn.onclick=function(){
+restartBtn.addEventListener("click", function () {
 
-    processing=false;
+    processing = false;
 
-    result.innerHTML="-";
+    studentId.innerHTML = "-";
 
-    studentId.innerHTML="-";
+    result.innerHTML = "-";
 
-    setStatus("Waiting for QR...","");
+    setStatus("Waiting for QR...");
 
-};
+});
